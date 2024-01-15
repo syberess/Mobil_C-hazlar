@@ -1,216 +1,109 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 
-void main() => runApp(MyApp());
+void main() {
+  runApp(MyApp());
+}
 
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Esma Polat Kütüphane Yönetimi',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-      ),
-      home: KitaplarimSayfasi(),
+      home: MapScreen(),
+      print("hayat");
     );
   }
 }
 
-class KitaplarimSayfasi extends StatefulWidget {
+class MapScreen extends StatefulWidget {
   @override
-  _KitaplarimSayfasiState createState() => _KitaplarimSayfasiState();
+  _MapScreenState createState() => _MapScreenState();
 }
 
-class _KitaplarimSayfasiState extends State<KitaplarimSayfasi> {
-  final CollectionReference kitaplarRef =
-      FirebaseFirestore.instance.collection('kitaplar');
+class _MapScreenState extends State<MapScreen> {
+  GoogleMapController _controller;
+  Set<Polygon> _polygons = Set();
+  String _selectedDamageStatus = 'Ağır Hasarlı';
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Kitaplarım'),
+        title: Text('Firebase Harita Uygulaması'),
       ),
-      body: StreamBuilder(
-        stream: kitaplarRef.snapshots(),
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) {
-            return CircularProgressIndicator();
-          }
-          
-          var kitaplar = snapshot.data?.docs;
-
-          return ListView.builder(
-            itemCount: kitaplar?.length,
-            itemBuilder: (context, index) {
-              var kitap = kitaplar?[index].data() as Map<String, dynamic>;
-
-              return ListTile(
-                title: Text(kitap['kitapAdi']),
-                subtitle: Text('${kitap['yazarAdi']} - ${kitap['sayfaSayisi']} sayfa'),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
-                      icon: Icon(Icons.edit),
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                KitapEklemeSayfasi(kitapBilgisi: kitap),
-                          ),
-                        );
-                      },
-                    ),
-                    IconButton(
-                      icon: Icon(Icons.delete),
-                      onPressed: () {
-                        _kitapSil(kitaplar?.[index].id);
-                      },
-                    ),
-                  ],
-                ),
-              );
-            },
-          );
+      body: GoogleMap(
+        onMapCreated: (controller) {
+          setState(() {
+            _controller = controller;
+          });
         },
+        polygons: _polygons,
+        initialCameraPosition: CameraPosition(
+          target: LatLng(37.7749, -122.4194), // Başlangıç konumu (örnek olarak San Francisco)
+          zoom: 12.0,
+        ),
+        onTap: _onMapTapped,
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => KitapEklemeSayfasi(),
-            ),
-          );
-        },
-        child: Icon(Icons.add),
+        onPressed: _saveToFirebase,
+        child: Icon(Icons.save),
       ),
     );
   }
 
-  void _kitapSil(String kitapId) async {
-    await kitaplarRef.doc(kitapId).delete();
-    setState(() {});
-  }
-}
-
-class KitapEklemeSayfasi extends StatefulWidget {
-  final Map<String, dynamic>? kitapBilgisi;
-
-  KitapEklemeSayfasi({this.kitapBilgisi});
-
-  @override
-  _KitapEklemeSayfasiState createState() => _KitapEklemeSayfasiState();
-}
-
-class _KitapEklemeSayfasiState extends State<KitapEklemeSayfasi> {
-  final TextEditingController _kitapAdiController = TextEditingController();
-  final TextEditingController _yayineviController = TextEditingController();
-  final TextEditingController _yazarController = TextEditingController();
-  final TextEditingController _sayfaSayisiController = TextEditingController();
-  final TextEditingController _basimYiliController = TextEditingController();
-  final TextEditingController _kategoriController = TextEditingController();
-
-  bool _listedeYayinlansin = false;
-
-  @override
-  void initState() {
-    super.initState();
-
-    if (widget.kitapBilgisi != null) {
-      _kitapAdiController.text = widget.kitapBilgisi!['kitapAdi'];
-      _yayineviController.text = widget.kitapBilgisi!['yayinevi'];
-      _yazarController.text = widget.kitapBilgisi!['yazarAdi'];
-      _sayfaSayisiController.text = widget.kitapBilgisi!['sayfaSayisi'].toString();
-      _basimYiliController.text = widget.kitapBilgisi!['basimYili'].toString();
-      _kategoriController.text = widget.kitapBilgisi!['kategori'];
-      _listedeYayinlansin = widget.kitapBilgisi!['listedeYayinlansin'];
-    }
+  void _onMapTapped(LatLng point) {
+    setState(() {
+      _polygons.add(Polygon(
+        polygonId: PolygonId('building'),
+        points: _createPolygonPoints(point),
+        fillColor: _selectedDamageStatus == 'Ağır Hasarlı'
+            ? Colors.red.withOpacity(0.5)
+            : Colors.green.withOpacity(0.5),
+        strokeWidth: 2,
+        strokeColor: Colors.black,
+      ));
+    });
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Kitap Ekleme'),
-      ),
-      body: Padding(
-        padding: EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            TextField(
-              controller: _kitapAdiController,
-              decoration: InputDecoration(labelText: 'Kitap Adı'),
-            ),
-            TextField(
-              controller: _yayineviController,
-              decoration: InputDecoration(labelText: 'Yayınevi'),
-            ),
-            TextField(
-              controller: _yazarController,
-              decoration: InputDecoration(labelText: 'Yazar/Yazarlar'),
-            ),
-            TextField(
-              controller: _sayfaSayisiController,
-              decoration: InputDecoration(labelText: 'Sayfa Sayısı'),
-              keyboardType: TextInputType.number,
-            ),
-            TextField(
-              controller: _basimYiliController,
-              decoration: InputDecoration(labelText: 'Basım Yılı'),
-              keyboardType: TextInputType.number,
-            ),
-            TextField(
-              controller: _kategoriController,
-              decoration: InputDecoration(labelText: 'Kategori'),
-            ),
-            Row(
-              children: [
-                Text('Listede Yayınlanacak mı?'),
-                Checkbox(
-                  value: _listedeYayinlansin,
-                  onChanged: (value) {
-                    setState(() {
-                      _listedeYayinlansin = value!;
-                    });
-                  },
-                ),
-              ],
-            ),
-            ElevatedButton(
-              onPressed: () {
-                _kitapKaydet();
-              },
-              child: Text('Kaydet'),
-            ),
-          ],
-        ),
-      ),
-    );
+  List<LatLng> _createPolygonPoints(LatLng center) {
+    // Poligon noktalarını oluşturun (örneğin, dikdörtgen)
+    double offset = 0.001;
+    return [
+      LatLng(center.latitude + offset, center.longitude - offset),
+      LatLng(center.latitude - offset, center.longitude - offset),
+      LatLng(center.latitude - offset, center.longitude + offset),
+      LatLng(center.latitude + offset, center.longitude + offset),
+    ];
   }
 
-  void _kitapKaydet() async {
-    Map<String, dynamic> kitapBilgisi = {
-      'kitapAdi': _kitapAdiController.text,
-      'yayinevi': _yayineviController.text,
-      'yazarAdi': _yazarController.text,
-      'sayfaSayisi': int.tryParse(_sayfaSayisiController.text) ?? 0,
-      'basimYili': int.tryParse(_basimYiliController.text) ?? 0,
-      'kategori': _kategoriController.text,
-      'listedeYayinlansin': _listedeYayinlansin,
+  import 'package:cloud_firestore/cloud_firestore.dart';
+
+void _saveToFirebase() async {
+  // Firestore bağlantısını başlatın
+  FirebaseFirestore firestore = FirebaseFirestore.instance;
+
+  // Poligonları Firestore'a ekleyin
+  for (Polygon polygon in _polygons) {
+    List<GeoPoint> geoPoints = polygon.points.map((latLng) {
+      return GeoPoint(latLng.latitude, latLng.longitude);
+    }).toList();
+
+    // Firestore'a eklemek istediğiniz verileri belirtin
+    Map<String, dynamic> buildingData = {
+      'damageStatus': _selectedDamageStatus,
+      'polygonPoints': geoPoints,
     };
 
-    if (widget.kitapBilgisi != null) {
-      await FirebaseFirestore.instance
-          .collection('kitaplar')
-          .doc(widget.kitapBilgisi!['id'])
-          .update(kitapBilgisi);
-    } else {
-      await FirebaseFirestore.instance.collection('kitaplar').add(kitapBilgisi);
-    }
+    // Firestore koleksiyonunu ve belgeyi belirtin
+    CollectionReference buildings = firestore.collection('buildings');
+    DocumentReference documentReference = await buildings.add(buildingData);
 
-    Navigator.pop(context);
+    // Eklenen belgenin ID'sini alabilirsiniz
+    print('Building added with ID: ${documentReference.id}');
   }
+
+  // Firestore bağlantısını kapatın (isteğe bağlı)
+  // firestore.terminate();
+}
+
 }

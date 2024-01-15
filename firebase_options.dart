@@ -55,7 +55,7 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyBMWTfakGOF-4qrOd4NMKtX8C7V0d1fxtg',
-    appId: '1:462291302073:android:ce9f3637bd37b4d1358d68',
+    appId: '1:462291302073:android:bc83d4b1e677144c358d68',
     messagingSenderId: '462291302073',
     projectId: 'flutter-egitim',
     storageBucket: 'flutter-egitim.appspot.com',
@@ -63,19 +63,19 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyBJ2ttr7ZSXuFztlmIm5ZXTye-phnT0PZY',
-    appId: '1:462291302073:ios:a491aca51070e1c3358d68',
+    appId: '1:462291302073:ios:0dd103898b0ae1ee358d68',
     messagingSenderId: '462291302073',
     projectId: 'flutter-egitim',
     storageBucket: 'flutter-egitim.appspot.com',
-    iosBundleId: 'com.polatesma.myFirebaseApp',
+    iosBundleId: 'com.example.mapFlutter',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
     apiKey: 'AIzaSyBJ2ttr7ZSXuFztlmIm5ZXTye-phnT0PZY',
-    appId: '1:462291302073:ios:7e88ff0dc8d797fd358d68',
+    appId: '1:462291302073:ios:4c84facf4aeaac15358d68',
     messagingSenderId: '462291302073',
     projectId: 'flutter-egitim',
     storageBucket: 'flutter-egitim.appspot.com',
-    iosBundleId: 'com.polatesma.myFirebaseApp.RunnerTests',
+    iosBundleId: 'com.example.mapFlutter.RunnerTests',
   );
 }
